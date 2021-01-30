@@ -37,9 +37,9 @@ func (self *Hold) NewCrate(crateType string) (model.Crate, error) {
 
 	switch crateType {
 	case "internal":
-		return model.NewInternal()
+		return model.NewInternal(self.Store)
 	case "external":
-		return model.NewExternal()
+		return model.NewExternal(self.Store)
 	}
 
 	return crate, fmt.Errorf("Invalid crate type: %s", crateType)

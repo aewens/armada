@@ -3,7 +3,6 @@ package model
 import (
 	"io"
 	"time"
-	"database/sql"
 )
 
 type Displayer interface {
@@ -15,13 +14,14 @@ type Encoder interface {
 }
 
 type Setter interface {
-	Set(key string, value interface{}) error
+	Set(key string, value []byte) error
 }
 
 type Crate interface{
 	Displayer
 	Encoder
 	Setter
+	Saver
 	//Updater
 	//Deleter
 }
@@ -29,15 +29,15 @@ type Crate interface{
 type CrateStream chan Crate
 
 type Saver interface {
-	Save(*sql.DB, Crate) error
+	Save() error
 }
 
 type Updater interface {
-	Update(*sql.DB, Crate) error
+	Update() error
 }
 
 type Deleter interface {
-	Delete(*sql.DB, Crate) error
+	Delete() error
 }
 
 type Writer interface {

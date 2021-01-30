@@ -27,14 +27,14 @@ func TestHold(t *testing.T) {
 		t.Fatal("New internal crate is nil")
 	}
 
-	err = icrate.Set("type", "test")
+	err = icrate.Set("type", []byte("test"))
 	catch(t, err)
-	err = icrate.Set("origin", "test")
+	err = icrate.Set("origin", []byte("test"))
 	catch(t, err)
 	err = icrate.Set("data", []byte{0})
 	catch(t, err)
 
-	err = Save(hold.Store, icrate)
+	err = icrate.Save()
 	catch(t, err)
 
 	ecrate, err := hold.NewCrate("external")
@@ -43,14 +43,14 @@ func TestHold(t *testing.T) {
 		t.Fatal("New external crate is nil")
 	}
 
-	err = ecrate.Set("type", "test")
+	err = ecrate.Set("type", []byte("test"))
 	catch(t, err)
-	err = ecrate.Set("name", "test")
+	err = ecrate.Set("name", []byte("test"))
 	catch(t, err)
-	err = ecrate.Set("body", "test")
+	err = ecrate.Set("body", []byte("test"))
 	catch(t, err)
 
-	err = Save(hold.Store, ecrate)
+	err = ecrate.Save()
 	catch(t, err)
 
 	_, err = hold.NewCrate("tag")

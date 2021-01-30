@@ -16,10 +16,10 @@ type Internal struct {
 	Tags   []*Tag `json:"tags"`
 }
 
-func NewInternal() (*Internal, error) {
+func NewInternal(store *sql.DB) (*Internal, error) {
 	var self *Internal
 
-	common, err := NewCommon()
+	common, err := NewCommon(store)
 	if err != nil {
 		return self, err
 	}
@@ -49,32 +49,22 @@ func (self *Internal) Encode(w io.Writer) error {
 	return err
 }
 
-func (self *Internal) Set(key string, value interface{}) error {
+func (self *Internal) Set(key string, value []byte) error {
 	switch key {
 	case "type":
-		val, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("Invalid value type: %#v", value)
-		}
+		val := string(value)
 		if len(val) > 64 {
 			return fmt.Errorf("Type is over 64 characters: %s", val)
 		}
 		self.Type = val
 	case "origin":
-		val, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("Invalid value type: %#v", value)
-		}
+		val := string(value)
 		if len(val) > 64 {
 			return fmt.Errorf("Origin is over 64 characters: %s", val)
 		}
 		self.Origin = val
 	case "data":
-		val, ok := value.([]byte)
-		if !ok {
-			return fmt.Errorf("Invalid value type: %#v", value)
-		}
-		self.Data = val
+		self.Data = value
 	default:
 		return fmt.Errorf("Invalid key: %s", key)
 	}
@@ -82,7 +72,7 @@ func (self *Internal) Set(key string, value interface{}) error {
 	return nil
 }
 
-func (self *Internal) Save(store *sql.DB) error {
+func (self *Internal) Save() error {
 	if len(self.UUID) != 32 {
 		return fmt.Errorf("UUID is not 32 bytes: %x", self.UUID)
 	}
@@ -99,7 +89,7 @@ func (self *Internal) Save(store *sql.DB) error {
 		return fmt.Errorf("Data is missing: %x", self.Data)
 	}
 
-	statement, err := store.Prepare(`
+	statement, err := self.Store.Prepare(`
 		INSERT INTO internal (uuid, flag, type, origin, data)
 		VALUES (?, ?, ?, ?, ?);
 	`)
@@ -130,4 +120,4 @@ func (self *Internal) Save(store *sql.DB) error {
 	return nil
 }
 
-func (self *Internal) Search(crateType) SearchQuery
+//func (self *Internal) Search(crateType) SearchQuery

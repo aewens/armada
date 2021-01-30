@@ -17,11 +17,11 @@ type External struct {
 	Tags   []*Tag `json:"tags"`
 }
 
-func NewExternal() (*External, error) {
+func NewExternal(store *sql.DB) (*External, error) {
 	var self *External
 	var data []byte
 
-	common, err := NewCommon()
+	common, err := NewCommon(store)
 	if err != nil {
 		return self, err
 	}
@@ -51,41 +51,27 @@ func (self *External) Encode(w io.Writer) error {
 	return err
 }
 
-func (self *External) Set(key string, value interface{}) error {
+func (self *External) Set(key string, value []byte) error {
 	switch key {
 	case "type":
-		val, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("Invalid value type: %#v", value)
-		}
+		val := string(value)
 		if len(val) > 64 {
 			return fmt.Errorf("Type is over 64 characters: %s", val)
 		}
 		self.Type = val
 	case "name":
-		val, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("Invalid value type: %#v", value)
-		}
+		val := string(value)
 		if len(val) > 64 {
 			return fmt.Errorf("Name is over 64 characters: %s", val)
 		}
 		self.Name = val
 	case "body":
-		val, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("Invalid value type: %#v", value)
-		}
-		self.Body = val
+		self.Body = string(value)
 	case "data":
-		val, ok := value.([]byte)
-		if !ok {
-			return fmt.Errorf("Invalid value type: %#v", value)
+		if len(value) != 32 {
+			return fmt.Errorf("Data is not 32 bytes: %x", value)
 		}
-		if len(val) != 32 {
-			return fmt.Errorf("Data is not 32 bytes: %x", val)
-		}
-		self.Data = val
+		self.Data = value
 	default:
 		return fmt.Errorf("Invalid key: %s", key)
 	}
@@ -93,7 +79,7 @@ func (self *External) Set(key string, value interface{}) error {
 	return nil
 }
 
-func (self *External) Save(store *sql.DB) error {
+func (self *External) Save() error {
 	if len(self.UUID) != 32 {
 		return fmt.Errorf("UUID is not 32 bytes: %x", self.UUID)
 	}
@@ -114,7 +100,7 @@ func (self *External) Save(store *sql.DB) error {
 		return fmt.Errorf("Data is invalid: %x", self.Data)
 	}
 
-	statement, err := store.Prepare(`
+	statement, err := self.Store.Prepare(`
 		INSERT INTO external (uuid, flag, type, name, body, data)
 		VALUES (?, ?, ?, ?, ?, ?);
 	`)

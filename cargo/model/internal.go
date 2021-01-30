@@ -168,3 +168,24 @@ func (self *Internal) Update(changes map[string][]byte) error {
 
 	return nil
 }
+
+func (self *Internal) Delete() error {
+	statement, err := self.Store.Prepare(`
+		DELETE FROM internal WHERE id = ?;
+	`)
+
+	if err != nil {
+		return err
+	}
+
+	defer statement.Close()
+	_, err = statement.Exec(
+		self.ID,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

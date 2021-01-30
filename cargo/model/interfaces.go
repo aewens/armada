@@ -23,7 +23,7 @@ type Crate interface{
 	Setter
 	Saver
 	Updater
-	//Deleter
+	Deleter
 }
 
 type CrateStream chan Crate

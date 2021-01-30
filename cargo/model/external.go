@@ -187,3 +187,24 @@ func (self *External) Update(changes map[string][]byte) error {
 
 	return nil
 }
+
+func (self *External) Delete() error {
+	statement, err := self.Store.Prepare(`
+		DELETE FROM external WHERE id = ?;
+	`)
+
+	if err != nil {
+		return err
+	}
+
+	defer statement.Close()
+	_, err = statement.Exec(
+		self.ID,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

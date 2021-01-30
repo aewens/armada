@@ -37,6 +37,11 @@ func TestHold(t *testing.T) {
 	err = icrate.Save()
 	catch(t, err)
 
+	changes := make(map[string][]byte)
+	changes["data"] = []byte{1}
+	err = icrate.Update(changes)
+	catch(t, err)
+
 	ecrate, err := hold.NewCrate("external")
 	catch(t, err)
 	if ecrate == nil {
@@ -51,6 +56,12 @@ func TestHold(t *testing.T) {
 	catch(t, err)
 
 	err = ecrate.Save()
+	catch(t, err)
+
+	changes = make(map[string][]byte)
+	changes["name"] = []byte("changed")
+	changes["body"] = []byte("changed")
+	err = ecrate.Update(changes)
 	catch(t, err)
 
 	_, err = hold.NewCrate("tag")

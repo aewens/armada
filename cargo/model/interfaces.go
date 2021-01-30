@@ -22,7 +22,7 @@ type Crate interface{
 	Encoder
 	Setter
 	Saver
-	//Updater
+	Updater
 	//Deleter
 }
 
@@ -33,7 +33,7 @@ type Saver interface {
 }
 
 type Updater interface {
-	Update() error
+	Update(changes map[string][]byte) error
 }
 
 type Deleter interface {
@@ -46,19 +46,12 @@ type Writer interface {
 	Deleter
 }
 
-type WhereQuery interface {
-	Contains(string) CrateStream
-	Equals(int) CrateStream
-	Is(string) CrateStream
+type Finder interface {
+	All() CrateStream
+	Lookup(...int) CrateStream
+	Contains(string, []byte) CrateStream
+	Equals(string, []byte) CrateStream
 	Before(time.Time) CrateStream
 	After(time.Time) CrateStream
-}
-
-type FindQuery interface {
-	//Where(string) WhereQuery
-	All() CrateStream
-}
-
-type Finder interface {
-	Find(Crate) FindQuery
+	Between(time.Time, time.Time) CrateStream
 }

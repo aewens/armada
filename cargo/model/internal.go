@@ -120,4 +120,51 @@ func (self *Internal) Save() error {
 	return nil
 }
 
-//func (self *Internal) Search(crateType) SearchQuery
+func (self *Internal) Update(changes map[string][]byte) error {
+	for key, value := range changes {
+		switch key {
+		case "type":
+			val := string(value)
+			if len(val) > 64 {
+				return fmt.Errorf("Type is over 64 characters: %s", val)
+			}
+			self.Type = val
+		case "origin":
+			val := string(value)
+			if len(val) > 64 {
+				return fmt.Errorf("Origin is over 64 characters: %s", val)
+			}
+			self.Origin = val
+		case "data":
+			if len(value) == 0 {
+				return fmt.Errorf("Data is missing: %x", value)
+			}
+			self.Data = value
+		default:
+			return fmt.Errorf("Invalid key: %s", key)
+		}
+	}
+
+	statement, err := self.Store.Prepare(`
+		UPDATE internal SET type = ?, origin = ?, data = ?
+		WHERE id = ?
+	`)
+
+	if err != nil {
+		return err
+	}
+
+	defer statement.Close()
+	_, err = statement.Exec(
+		self.Type,
+		self.Origin,
+		self.Data,
+		self.ID,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

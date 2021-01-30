@@ -131,3 +131,59 @@ func (self *External) Save() error {
 	self.ID = id
 	return nil
 }
+
+func (self *External) Update(changes map[string][]byte) error {
+	for key, value := range changes {
+		switch key {
+		case "type":
+			val := string(value)
+			if len(val) > 64 {
+				return fmt.Errorf("Type is over 64 characters: %s", val)
+			}
+			self.Type = val
+		case "name":
+			val := string(value)
+			if len(val) > 64 {
+				return fmt.Errorf("Name is over 64 characters: %s", val)
+			}
+			self.Name = val
+		case "body":
+			val := string(value)
+			if len(val) == 0 {
+				return fmt.Errorf("Body is missing: %s", val)
+			}
+			self.Body = val
+		case "data":
+			if len(value) == 0 {
+				return fmt.Errorf("Data is missing: %x", value)
+			}
+			self.Data = value
+		default:
+			return fmt.Errorf("Invalid key: %s", key)
+		}
+	}
+
+	statement, err := self.Store.Prepare(`
+		UPDATE external SET type = ?, name = ?, body = ?, data = ?
+		WHERE id = ?
+	`)
+
+	if err != nil {
+		return err
+	}
+
+	defer statement.Close()
+	_, err = statement.Exec(
+		self.Type,
+		self.Name,
+		self.Body,
+		self.Data,
+		self.ID,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

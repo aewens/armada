@@ -10,18 +10,29 @@ import (
 
 type Tag struct {
 	Store  *sql.DB
-	Crates []*model.Tag
+	Crates map[int64]*model.Tag
 }
 
 func NewTag(store *sql.DB) *Tag {
 	return &Tag{
 		Store:  store,
-		Crates: []*model.Tag{},
+		Crates: make(map[int64]*model.Tag),
 	}
 }
 
 func (self *Tag) Create() (model.Entity, error) {
 	return model.NewTag(self.Store)
+}
+
+func (self *Tag) Load(stream Stream) {
+	for entity := range stream {
+		tag, ok := entity.(*model.Tag)
+		if !ok {
+			continue
+		}
+
+		self.Crates[tag.ID] = tag
+	}
 }
 
 func (self *Tag) Import(
@@ -50,6 +61,47 @@ func (self *Tag) Import(
 	tag.Label = label
 
 	return entity, nil
+}
+
+func (self *Tag) Get(id int64) (model.Entity, error) {
+	statement, err := self.Store.Prepare(`
+		SELECT uuid, added, updated, flag, label
+		FROM tag WHERE id = ?;
+	`)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		uuid    []byte
+		added   time.Time
+		updated time.Time
+		flag    uint8
+		label   string
+	)
+
+	defer statement.Close()
+	err = statement.QueryRow(id).Scan(
+		&uuid,
+		&added,
+		&updated,
+		&flag,
+		&label,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return self.Import(
+		id,
+		uuid,
+		added,
+		updated,
+		flag,
+		label,
+	)
 }
 
 func (self *Tag) All() Stream {
@@ -111,54 +163,19 @@ func (self *Tag) All() Stream {
 	return stream
 }
 
-func (self *Tag) Get(id int64) (model.Entity, error) {
-	statement, err := self.Store.Prepare(`
-		SELECT uuid, added, updated, flag, label
-		FROM tag WHERE id = ?;
-	`)
+func (self *Tag) Lookup(ids ...int64) Stream {
+	stream := make(Stream)
 
-	if err != nil {
-		return nil, err
-	}
-
-	var (
-		uuid    []byte
-		added   time.Time
-		updated time.Time
-		flag    uint8
-		label   string
-	)
-
-	defer statement.Close()
-	err = statement.QueryRow(id).Scan(
-		&uuid,
-		&added,
-		&updated,
-		&flag,
-		&label,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return self.Import(
-		id,
-		uuid,
-		added,
-		updated,
-		flag,
-		label,
-	)
-}
-
-func (self *Tag) Load(stream Stream) {
-	for entity := range stream {
-		tag, ok := entity.(*model.Tag)
-		if !ok {
-			continue
+	go func() {
+		for _, id := range ids {
+			entity, err := self.Get(id)
+			if err == nil {
+				stream <- entity
+			}
 		}
 
-		self.Crates[tag.ID] = tag
-	}
+		close(stream)
+	}()
+
+	return stream
 }

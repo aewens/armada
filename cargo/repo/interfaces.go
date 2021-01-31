@@ -11,7 +11,7 @@ type Stream chan model.Entity
 type Reader interface {
 	All() Stream
 	Get(int64) (model.Entity, error)
-	//Lookup(...int64) Stream
+	Lookup(...int64) Stream
 	//Contains(string, []byte) Stream
 	//Equals(string, []byte) Stream
 	//Before(time.Time) Stream

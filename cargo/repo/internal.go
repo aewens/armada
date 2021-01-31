@@ -24,6 +24,17 @@ func (self *Internal) Create() (model.Entity, error) {
 	return model.NewInternal(self.Store)
 }
 
+func (self *Internal) Load(stream Stream) {
+	for entity := range stream {
+		internal, ok := entity.(*model.Internal)
+		if !ok {
+			continue
+		}
+
+		self.Crates[internal.ID] = internal
+	}
+}
+
 func (self *Internal) Import(
 	id      int64,
 	uuid    []byte,
@@ -54,6 +65,53 @@ func (self *Internal) Import(
 	internal.Data = data
 
 	return entity, nil
+}
+
+func (self *Internal) Get(id int64) (model.Entity, error) {
+	statement, err := self.Store.Prepare(`
+		SELECT uuid, added, updated, flag, type, origin, data
+		FROM internal WHERE id = ?;
+	`)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		uuid    []byte
+		added   time.Time
+		updated time.Time
+		flag    uint8
+		itype   string
+		origin  string
+		data    []byte
+	)
+
+	defer statement.Close()
+	err = statement.QueryRow(id).Scan(
+		&uuid,
+		&added,
+		&updated,
+		&flag,
+		&itype,
+		&origin,
+		&data,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return self.Import(
+		id,
+		uuid,
+		added,
+		updated,
+		flag,
+		itype,
+		origin,
+		data,
+	)
 }
 
 func (self *Internal) All() Stream {
@@ -121,60 +179,19 @@ func (self *Internal) All() Stream {
 	return stream
 }
 
-func (self *Internal) Get(id int64) (model.Entity, error) {
-	statement, err := self.Store.Prepare(`
-		SELECT uuid, added, updated, flag, type, origin, data
-		FROM internal WHERE id = ?;
-	`)
+func (self *Internal) Lookup(ids ...int64) Stream {
+	stream := make(Stream)
 
-	if err != nil {
-		return nil, err
-	}
-
-	var (
-		uuid    []byte
-		added   time.Time
-		updated time.Time
-		flag    uint8
-		itype   string
-		origin  string
-		data    []byte
-	)
-
-	defer statement.Close()
-	err = statement.QueryRow(id).Scan(
-		&uuid,
-		&added,
-		&updated,
-		&flag,
-		&itype,
-		&origin,
-		&data,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return self.Import(
-		id,
-		uuid,
-		added,
-		updated,
-		flag,
-		itype,
-		origin,
-		data,
-	)
-}
-
-func (self *Internal) Load(stream Stream) {
-	for entity := range stream {
-		internal, ok := entity.(*model.Internal)
-		if !ok {
-			continue
+	go func() {
+		for _, id := range ids {
+			entity, err := self.Get(id)
+			if err == nil {
+				stream <- entity
+			}
 		}
 
-		self.Crates[internal.ID] = internal
-	}
+		close(stream)
+	}()
+
+	return stream
 }

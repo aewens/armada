@@ -2,9 +2,11 @@ package cargo
 
 import (
 	"testing"
+	"fmt"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/aewens/armada/cargo/model"
+	"github.com/aewens/armada/cargo/repo"
 )
 
 func catch(t *testing.T, err error) {
@@ -174,6 +176,17 @@ func TestHold(t *testing.T) {
 
 	err = icrate.Delete()
 	catch(t, err)
+
+	err = tag.Delete()
+	catch(t, err)
+}
+
+func StreamSize(stream repo.Stream) int {
+	count := 0
+	for range stream {
+		count = count + 1
+	}
+	return count
 }
 
 func TestRepos(t *testing.T) {
@@ -189,18 +202,98 @@ func TestRepos(t *testing.T) {
 	irepo, err := hold.NewRepo("internal")
 	catch(t, err)
 
+	ic := 3
+	for i := 0; i < ic; i++ {
+		entity, err := irepo.Create()
+		catch(t, err)
+		err = entity.Set("type", []byte(fmt.Sprintf("test%d", i)))
+		catch(t, err)
+		err = entity.Set("origin", []byte(fmt.Sprintf("test%d", i)))
+		catch(t, err)
+		err = entity.Set("data", []byte{byte(i)})
+		catch(t, err)
+		err = entity.Save()
+		catch(t, err)
+	}
+
 	istream := irepo.All()
 	irepo.Load(istream)
+
+	iirepo, ok := irepo.(*repo.Internal)
+	if !ok {
+		t.Fatal("Could not cast to Internal")
+	}
+
+	if len(iirepo.Crates) != ic {
+		t.Fatal("Did not load all entities")
+	}
+
+	count := StreamSize(irepo.Lookup(2))
+	if count != 1 {
+		t.Fatal("Could not lookup entity")
+	}
 
 	erepo, err := hold.NewRepo("external")
 	catch(t, err)
 
+	ec := 3
+	for i := 0; i < ec; i++ {
+		entity, err := erepo.Create()
+		catch(t, err)
+		err = entity.Set("type", []byte(fmt.Sprintf("test%d", i)))
+		catch(t, err)
+		err = entity.Set("name", []byte(fmt.Sprintf("test%d", i)))
+		catch(t, err)
+		err = entity.Set("body", []byte(fmt.Sprintf("body%d", i)))
+		catch(t, err)
+		err = entity.Save()
+		catch(t, err)
+	}
+
 	estream := erepo.All()
 	erepo.Load(estream)
+
+	eerepo, ok := erepo.(*repo.External)
+	if !ok {
+		t.Fatal("Could not cast to External")
+	}
+
+	if len(eerepo.Crates) != ec {
+		t.Fatalf("Did not load all entities: %d", len(eerepo.Crates))
+	}
+
+	count = StreamSize(erepo.Lookup(2))
+	if count != 1 {
+		t.Fatal("Could not lookup entity")
+	}
 
 	trepo, err := hold.NewRepo("tag")
 	catch(t, err)
 
+	tc := 3
+	for i := 0; i < tc; i++ {
+		entity, err := trepo.Create()
+		catch(t, err)
+		err = entity.Set("label", []byte(fmt.Sprintf("test%d", i)))
+		catch(t, err)
+		err = entity.Save()
+		catch(t, err)
+	}
+
 	tstream := trepo.All()
 	trepo.Load(tstream)
+
+	ttrepo, ok := trepo.(*repo.Tag)
+	if !ok {
+		t.Fatal("Could not cast to Tag")
+	}
+
+	if len(ttrepo.Crates) != tc {
+		t.Fatal("Did not load all entities")
+	}
+
+	count = StreamSize(trepo.Lookup(2))
+	if count != 1 {
+		t.Fatal("Could not lookup entity")
+	}
 }

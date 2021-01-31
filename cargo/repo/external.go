@@ -131,6 +131,59 @@ func (self *External) Get(id int64) (model.Entity, error) {
 	)
 }
 
+func (self *External) Process(stream Stream, rows *sql.Rows) {
+	defer rows.Close()
+	for rows.Next() {
+		var (
+			id      int64
+			uuid    []byte
+			added   time.Time
+			updated time.Time
+			flag    uint8
+			etype   string
+			name    string
+			body    string
+			link    sql.NullInt64
+		)
+
+		err := rows.Scan(
+			&id,
+			&uuid,
+			&added,
+			&updated,
+			&flag,
+			&etype,
+			&name,
+			&body,
+			&link,
+		)
+
+		if err != nil {
+			continue
+		}
+
+		entity, err := self.Import(
+			id,
+			uuid,
+			added,
+			updated,
+			flag,
+			etype,
+			name,
+			body,
+			link,
+		)
+
+		if err != nil {
+			continue
+		}
+
+		stream <- entity
+	}
+
+	close(stream)
+}
+
 func (self *External) All() Stream {
 	stream := make(Stream)
 
@@ -144,56 +197,7 @@ func (self *External) All() Stream {
 			return
 		}
 
-		defer rows.Close()
-		for rows.Next() {
-			var (
-				id      int64
-				uuid    []byte
-				added   time.Time
-				updated time.Time
-				flag    uint8
-				etype   string
-				name    string
-				body    string
-				link    sql.NullInt64
-			)
-
-			err = rows.Scan(
-				&id,
-				&uuid,
-				&added,
-				&updated,
-				&flag,
-				&etype,
-				&name,
-				&body,
-				&link,
-			)
-
-			if err != nil {
-				continue
-			}
-
-			entity, err := self.Import(
-				id,
-				uuid,
-				added,
-				updated,
-				flag,
-				etype,
-				name,
-				body,
-				link,
-			)
-
-			if err != nil {
-				continue
-			}
-
-			stream <- entity
-		}
-
-		close(stream)
+		self.Process(stream, rows)
 	}()
 
 	return stream
@@ -236,56 +240,7 @@ func (self *External) Contains(field string, search string) Stream {
 			return
 		}
 
-		defer rows.Close()
-		for rows.Next() {
-			var (
-				id      int64
-				uuid    []byte
-				added   time.Time
-				updated time.Time
-				flag    uint8
-				etype   string
-				name    string
-				body    string
-				link    sql.NullInt64
-			)
-
-			err = rows.Scan(
-				&id,
-				&uuid,
-				&added,
-				&updated,
-				&flag,
-				&etype,
-				&name,
-				&body,
-				&link,
-			)
-
-			if err != nil {
-				continue
-			}
-
-			entity, err := self.Import(
-				id,
-				uuid,
-				added,
-				updated,
-				flag,
-				etype,
-				name,
-				body,
-				link,
-			)
-
-			if err != nil {
-				continue
-			}
-
-			stream <- entity
-		}
-
-		close(stream)
+		self.Process(stream, rows)
 	}()
 
 	return stream
@@ -311,56 +266,33 @@ func (self *External) Equals(field string, search string) Stream {
 			return
 		}
 
-		defer rows.Close()
-		for rows.Next() {
-			var (
-				id      int64
-				uuid    []byte
-				added   time.Time
-				updated time.Time
-				flag    uint8
-				etype   string
-				name    string
-				body    string
-				link    sql.NullInt64
-			)
+		self.Process(stream, rows)
+	}()
 
-			err = rows.Scan(
-				&id,
-				&uuid,
-				&added,
-				&updated,
-				&flag,
-				&etype,
-				&name,
-				&body,
-				&link,
-			)
+	return stream
+}
 
-			if err != nil {
-				continue
-			}
+func (self *External) Before(field string, search time.Time) Stream {
+	stream := make(Stream)
 
-			entity, err := self.Import(
-				id,
-				uuid,
-				added,
-				updated,
-				flag,
-				etype,
-				name,
-				body,
-				link,
-			)
+	go func() {
+		statement, err := self.Store.Prepare(fmt.Sprintf(`
+			SELECT id, uuid, added, updated, flag, type, name, body, data
+			FROM external WHERE %s <= ?;
+		`, field))
 
-			if err != nil {
-				continue
-			}
-
-			stream <- entity
+		if err != nil {
+			return
 		}
 
-		close(stream)
+		defer statement.Close()
+		rows, err := statement.Query(search)
+
+		if err != nil {
+			return
+		}
+
+		self.Process(stream, rows)
 	}()
 
 	return stream

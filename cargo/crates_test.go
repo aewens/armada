@@ -3,6 +3,7 @@ package cargo
 import (
 	"testing"
 	"fmt"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/aewens/armada/cargo/model"
@@ -190,6 +191,7 @@ func StreamSize(stream repo.Stream) int {
 }
 
 func TestRepos(t *testing.T) {
+	now := Now()
 	hold, err := New(":memory:")
 	catch(t, err)
 
@@ -243,6 +245,16 @@ func TestRepos(t *testing.T) {
 		t.Fatal("Could not lookup entity")
 	}
 
+	count = StreamSize(irepo.Equals("origin", "test1"))
+	if count != 1 {
+		t.Fatal("Could not lookup entity")
+	}
+
+	count = StreamSize(irepo.Before("added", now.Add(1 * time.Minute)))
+	if count != ic {
+		t.Fatal("Could not lookup entities")
+	}
+
 	erepo, err := hold.NewRepo("external")
 	catch(t, err)
 
@@ -287,6 +299,11 @@ func TestRepos(t *testing.T) {
 		t.Fatal("Could not lookup entity")
 	}
 
+	count = StreamSize(erepo.Before("added", now.Add(1 * time.Minute)))
+	if count != ec {
+		t.Fatal("Could not lookup entities")
+	}
+
 	trepo, err := hold.NewRepo("tag")
 	catch(t, err)
 
@@ -325,5 +342,10 @@ func TestRepos(t *testing.T) {
 	count = StreamSize(trepo.Equals("label", "test1"))
 	if count != 1 {
 		t.Fatal("Could not lookup entity")
+	}
+
+	count = StreamSize(trepo.Before("added", now.Add(1 * time.Minute)))
+	if count != tc {
+		t.Fatal("Could not lookup entities")
 	}
 }

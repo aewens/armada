@@ -1,7 +1,7 @@
 package repo
 
 import (
-	//"time"
+	"time"
 
 	"github.com/aewens/armada/cargo/model"
 )
@@ -14,9 +14,9 @@ type Reader interface {
 	Lookup(...int64) Stream
 	Contains(string, string) Stream
 	Equals(string, string) Stream
-	//Before(time.Time) Stream
-	//After(time.Time) Stream
-	//Between(time.Time, time.Time) Stream
+	Before(string, time.Time) Stream
+	//After(string, time.Time) Stream
+	//Between(string, time.Time, time.Time) Stream
 }
 
 type Entity interface {

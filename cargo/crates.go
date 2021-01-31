@@ -2,6 +2,7 @@ package cargo
 
 import (
 	"fmt"
+	"time"
 	"database/sql"
 
 	"github.com/aewens/armada/cargo/model"
@@ -10,6 +11,10 @@ import (
 
 type Hold struct {
 	Store  *sql.DB
+}
+
+func Now() time.Time {
+	return model.Now()
 }
 
 func New(conn string) (*Hold, error) {

@@ -104,6 +104,50 @@ func (self *Tag) Get(id int64) (model.Entity, error) {
 	)
 }
 
+func (self *Tag) Process(stream Stream, rows *sql.Rows) {
+	defer rows.Close()
+	for rows.Next() {
+		var (
+			id      int64
+			uuid    []byte
+			added   time.Time
+			updated time.Time
+			flag    uint8
+			label   string
+		)
+
+		err := rows.Scan(
+			&id,
+			&uuid,
+			&added,
+			&updated,
+			&flag,
+			&label,
+		)
+
+		if err != nil {
+			continue
+		}
+
+		entity, err := self.Import(
+			id,
+			uuid,
+			added,
+			updated,
+			flag,
+			label,
+		)
+
+		if err != nil {
+			continue
+		}
+
+		stream <- entity
+	}
+
+	close(stream)
+}
+
 func (self *Tag) All() Stream {
 	stream := make(Stream)
 
@@ -117,47 +161,7 @@ func (self *Tag) All() Stream {
 			return
 		}
 
-		defer rows.Close()
-		for rows.Next() {
-			var (
-				id      int64
-				uuid    []byte
-				added   time.Time
-				updated time.Time
-				flag    uint8
-				label   string
-			)
-
-			err = rows.Scan(
-				&id,
-				&uuid,
-				&added,
-				&updated,
-				&flag,
-				&label,
-			)
-
-			if err != nil {
-				continue
-			}
-
-			entity, err := self.Import(
-				id,
-				uuid,
-				added,
-				updated,
-				flag,
-				label,
-			)
-
-			if err != nil {
-				continue
-			}
-
-			stream <- entity
-		}
-
-		close(stream)
+		self.Process(stream, rows)
 	}()
 
 	return stream
@@ -200,47 +204,7 @@ func (self *Tag) Contains(field string, search string) Stream {
 			return
 		}
 
-		defer rows.Close()
-		for rows.Next() {
-			var (
-				id      int64
-				uuid    []byte
-				added   time.Time
-				updated time.Time
-				flag    uint8
-				label   string
-			)
-
-			err = rows.Scan(
-				&id,
-				&uuid,
-				&added,
-				&updated,
-				&flag,
-				&label,
-			)
-
-			if err != nil {
-				continue
-			}
-
-			entity, err := self.Import(
-				id,
-				uuid,
-				added,
-				updated,
-				flag,
-				label,
-			)
-
-			if err != nil {
-				continue
-			}
-
-			stream <- entity
-		}
-
-		close(stream)
+		self.Process(stream, rows)
 	}()
 
 	return stream
@@ -266,47 +230,33 @@ func (self *Tag) Equals(field string, search string) Stream {
 			return
 		}
 
-		defer rows.Close()
-		for rows.Next() {
-			var (
-				id      int64
-				uuid    []byte
-				added   time.Time
-				updated time.Time
-				flag    uint8
-				label   string
-			)
+		self.Process(stream, rows)
+	}()
 
-			err = rows.Scan(
-				&id,
-				&uuid,
-				&added,
-				&updated,
-				&flag,
-				&label,
-			)
+	return stream
+}
 
-			if err != nil {
-				continue
-			}
+func (self *Tag) Before(field string, search time.Time) Stream {
+	stream := make(Stream)
 
-			entity, err := self.Import(
-				id,
-				uuid,
-				added,
-				updated,
-				flag,
-				label,
-			)
+	go func() {
+		statement, err := self.Store.Prepare(fmt.Sprintf(`
+			SELECT id, uuid, added, updated, flag, label
+			FROM tag WHERE %s <= ?;
+		`, field))
 
-			if err != nil {
-				continue
-			}
-
-			stream <- entity
+		if err != nil {
+			return
 		}
 
-		close(stream)
+		defer statement.Close()
+		rows, err := statement.Query(search)
+
+		if err != nil {
+			return
+		}
+
+		self.Process(stream, rows)
 	}()
 
 	return stream

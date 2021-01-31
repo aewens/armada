@@ -15,8 +15,8 @@ type Reader interface {
 	Contains(string, string) Stream
 	Equals(string, string) Stream
 	Before(string, time.Time) Stream
-	//After(string, time.Time) Stream
-	//Between(string, time.Time, time.Time) Stream
+	After(string, time.Time) Stream
+	Between(string, time.Time, time.Time) Stream
 }
 
 type Entity interface {

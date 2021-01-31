@@ -242,7 +242,7 @@ func (self *Tag) Before(field string, search time.Time) Stream {
 	go func() {
 		statement, err := self.Store.Prepare(fmt.Sprintf(`
 			SELECT id, uuid, added, updated, flag, label
-			FROM tag WHERE %s <= ?;
+			FROM tag WHERE %s < ?;
 		`, field))
 
 		if err != nil {
@@ -251,6 +251,62 @@ func (self *Tag) Before(field string, search time.Time) Stream {
 
 		defer statement.Close()
 		rows, err := statement.Query(search)
+
+		if err != nil {
+			return
+		}
+
+		self.Process(stream, rows)
+	}()
+
+	return stream
+}
+
+func (self *Tag) After(field string, search time.Time) Stream {
+	stream := make(Stream)
+
+	go func() {
+		statement, err := self.Store.Prepare(fmt.Sprintf(`
+			SELECT id, uuid, added, updated, flag, label
+			FROM tag WHERE %s > ?;
+		`, field))
+
+		if err != nil {
+			return
+		}
+
+		defer statement.Close()
+		rows, err := statement.Query(search)
+
+		if err != nil {
+			return
+		}
+
+		self.Process(stream, rows)
+	}()
+
+	return stream
+}
+
+func (self *Tag) Between(
+	field string,
+	before time.Time,
+	after time.Time,
+) Stream {
+	stream := make(Stream)
+
+	go func() {
+		statement, err := self.Store.Prepare(fmt.Sprintf(`
+			SELECT id, uuid, added, updated, flag, label
+			FROM tag WHERE %s > ? AND %s < ?;
+		`, field, field))
+
+		if err != nil {
+			return
+		}
+
+		defer statement.Close()
+		rows, err := statement.Query(before, after)
 
 		if err != nil {
 			return

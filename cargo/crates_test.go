@@ -255,6 +255,20 @@ func TestRepos(t *testing.T) {
 		t.Fatal("Could not lookup entities")
 	}
 
+	count = StreamSize(irepo.After("added", now.Add(-1 * time.Minute)))
+	if count != ic {
+		t.Fatal("Could not lookup entities")
+	}
+
+	count = StreamSize(irepo.Between(
+		"added",
+		now.Add(-1 * time.Minute),
+		now.Add(1 * time.Minute),
+	))
+	if count != ic {
+		t.Fatal("Could not lookup entities")
+	}
+
 	erepo, err := hold.NewRepo("external")
 	catch(t, err)
 
@@ -304,6 +318,20 @@ func TestRepos(t *testing.T) {
 		t.Fatal("Could not lookup entities")
 	}
 
+	count = StreamSize(erepo.After("added", now.Add(-1 * time.Minute)))
+	if count != ec {
+		t.Fatal("Could not lookup entities")
+	}
+
+	count = StreamSize(erepo.Between(
+		"added",
+		now.Add(-1 * time.Minute),
+		now.Add(1 * time.Minute),
+	))
+	if count != ec {
+		t.Fatal("Could not lookup entities")
+	}
+
 	trepo, err := hold.NewRepo("tag")
 	catch(t, err)
 
@@ -345,6 +373,20 @@ func TestRepos(t *testing.T) {
 	}
 
 	count = StreamSize(trepo.Before("added", now.Add(1 * time.Minute)))
+	if count != tc {
+		t.Fatal("Could not lookup entities")
+	}
+
+	count = StreamSize(trepo.After("added", now.Add(-1 * time.Minute)))
+	if count != tc {
+		t.Fatal("Could not lookup entities")
+	}
+
+	count = StreamSize(trepo.Between(
+		"added",
+		now.Add(-1 * time.Minute),
+		now.Add(1 * time.Minute),
+	))
 	if count != tc {
 		t.Fatal("Could not lookup entities")
 	}

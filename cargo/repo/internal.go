@@ -258,7 +258,7 @@ func (self *Internal) Before(field string, search time.Time) Stream {
 	go func() {
 		statement, err := self.Store.Prepare(fmt.Sprintf(`
 			SELECT id, uuid, added, updated, flag, type, origin, data
-			FROM internal WHERE %s <= ?;
+			FROM internal WHERE %s < ?;
 		`, field))
 
 		if err != nil {
@@ -267,6 +267,62 @@ func (self *Internal) Before(field string, search time.Time) Stream {
 
 		defer statement.Close()
 		rows, err := statement.Query(search)
+
+		if err != nil {
+			return
+		}
+
+		self.Process(stream, rows)
+	}()
+
+	return stream
+}
+
+func (self *Internal) After(field string, search time.Time) Stream {
+	stream := make(Stream)
+
+	go func() {
+		statement, err := self.Store.Prepare(fmt.Sprintf(`
+			SELECT id, uuid, added, updated, flag, type, origin, data
+			FROM internal WHERE %s > ?;
+		`, field))
+
+		if err != nil {
+			return
+		}
+
+		defer statement.Close()
+		rows, err := statement.Query(search)
+
+		if err != nil {
+			return
+		}
+
+		self.Process(stream, rows)
+	}()
+
+	return stream
+}
+
+func (self *Internal) Between(
+	field string,
+	before time.Time,
+	after time.Time,
+) Stream {
+	stream := make(Stream)
+
+	go func() {
+		statement, err := self.Store.Prepare(fmt.Sprintf(`
+			SELECT id, uuid, added, updated, flag, type, origin, data
+			FROM internal WHERE %s > ? AND %s < ?;
+		`, field, field))
+
+		if err != nil {
+			return
+		}
+
+		defer statement.Close()
+		rows, err := statement.Query(before, after)
 
 		if err != nil {
 			return

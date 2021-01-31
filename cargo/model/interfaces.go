@@ -2,8 +2,6 @@ package model
 
 import (
 	"io"
-	"time"
-	"database/sql"
 )
 
 type Displayer interface {
@@ -15,29 +13,25 @@ type Encoder interface {
 }
 
 type Setter interface {
-	Set(key string, value interface{}) error
+	Set(string, []byte) error
 }
 
-type Crate interface{
-	Displayer
-	Encoder
-	Setter
-	//Updater
-	//Deleter
+type Mapper interface {
+	ExportMetadata() (int64, string)
+	Map(Entity) error
+	Unmap(Entity) error
 }
-
-type CrateStream chan Crate
 
 type Saver interface {
-	Save(*sql.DB, Crate) error
+	Save() error
 }
 
 type Updater interface {
-	Update(*sql.DB, Crate) error
+	Update() error
 }
 
 type Deleter interface {
-	Delete(*sql.DB, Crate) error
+	Delete() error
 }
 
 type Writer interface {
@@ -46,19 +40,10 @@ type Writer interface {
 	Deleter
 }
 
-type WhereQuery interface {
-	Contains(string) CrateStream
-	Equals(int) CrateStream
-	Is(string) CrateStream
-	Before(time.Time) CrateStream
-	After(time.Time) CrateStream
-}
-
-type FindQuery interface {
-	//Where(string) WhereQuery
-	All() CrateStream
-}
-
-type Finder interface {
-	Find(Crate) FindQuery
+type Entity interface {
+	Displayer
+	Encoder
+	Setter
+	Writer
+	Mapper
 }

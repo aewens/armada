@@ -69,6 +69,17 @@ func TestHold(t *testing.T) {
 		t.Fatal("Missing tag mapping")
 	}
 
+	err = icrate.Unmap(tag)
+	catch(t, err)
+
+	if len(internal.Tags) != 0 {
+		t.Fatal("Did not remove tag entry")
+	}
+
+	if len(internal.Mapping) != 0 {
+		t.Fatal("Did not remove tag mapping")
+	}
+
 	changes := make(map[string][]byte)
 	changes["data"] = []byte{1}
 	err = icrate.Update(changes)
@@ -107,6 +118,17 @@ func TestHold(t *testing.T) {
 
 	if len(external.Mapping) != 1 {
 		t.Fatal("Missing tag mapping")
+	}
+
+	err = ecrate.Unmap(tag)
+	catch(t, err)
+
+	if len(external.Tags) != 0 {
+		t.Fatal("Did not remove tag entry")
+	}
+
+	if len(external.Mapping) != 0 {
+		t.Fatal("Did not remove tag mapping")
 	}
 
 	changes = make(map[string][]byte)

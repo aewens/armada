@@ -254,3 +254,65 @@ func (self *External) Map(entity Entity) error {
 
 	return nil
 }
+
+func (self *External) Unmap(entity Entity) error {
+	id, mapper := entity.ExportMetadata()
+	if self.Mapper == mapper {
+		return fmt.Errorf("Cannot delete mapping with: %s", mapper)
+	}
+
+	mappingID, ok := self.Mapping[id]
+	if !ok {
+		statement, err := self.Store.Prepare(fmt.Sprintf(`
+			DELETE FROM mapping
+			WHERE external_id = ? AND %s_id = ?;
+		`, mapper))
+
+		if err != nil {
+			return err
+		}
+
+		defer statement.Close()
+		_, err = statement.Exec(
+			self.ID,
+			id,
+		)
+
+		if err != nil {
+			return err
+		}
+	} else {
+		delete(self.Mapping, id)
+
+		statement, err := self.Store.Prepare(`
+			DELETE FROM mapping WHERE id = ?;
+		`)
+
+		if err != nil {
+			return err
+		}
+
+		defer statement.Close()
+		_, err = statement.Exec(
+			mappingID,
+		)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	if mapper == "tag" {
+		tags := []Entity{}
+		for _, tag := range self.Tags {
+			if tag == entity {
+				continue
+			}
+
+			tags = append(tags, tag)
+		}
+		self.Tags = tags
+	}
+
+	return nil
+}

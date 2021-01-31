@@ -35,7 +35,7 @@ type CrateStream chan Crate
 type Mapper interface {
 	ExportMetadata() (int64, string)
 	Map(Entity) error
-	//Unmap(Entity) error
+	Unmap(Entity) error
 }
 
 type Saver interface {

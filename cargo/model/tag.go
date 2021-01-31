@@ -115,3 +115,7 @@ func (self *Tag) ExportMetadata() (int64, string) {
 func (self *Tag) Map(entity Entity) error {
 	return fmt.Errorf("Cannot create mapping from %s", self.Mapper)
 }
+
+func (self *Tag) Unmap(entity Entity) error {
+	return fmt.Errorf("Cannot delete mapping from %s", self.Mapper)
+}

@@ -28,13 +28,22 @@ func TestHold(t *testing.T) {
 		t.Fatal("New tag crate is not invalid")
 	}
 
-	tag, err := hold.NewTag("test")
+	tag, err := hold.NewTag()
 	catch(t, err)
 	if tag == nil {
 		t.Fatal("New tag is nil")
 	}
 
+	err = tag.Set("label", []byte("test"))
+	catch(t, err)
+
 	err = tag.Save()
+	catch(t, err)
+
+	err = tag.Set("flag", []byte{2})
+	catch(t, err)
+
+	err = tag.Update()
 	catch(t, err)
 
 	icrate, err := hold.NewCrate("internal")
@@ -80,12 +89,10 @@ func TestHold(t *testing.T) {
 		t.Fatal("Did not remove tag mapping")
 	}
 
-	changes := make(map[string][]byte)
-	changes["data"] = []byte{1}
-	err = icrate.Update(changes)
+	err = icrate.Set("data", []byte{1})
 	catch(t, err)
 
-	err = icrate.Delete()
+	err = icrate.Update()
 	catch(t, err)
 
 	ecrate, err := hold.NewCrate("external")
@@ -131,12 +138,54 @@ func TestHold(t *testing.T) {
 		t.Fatal("Did not remove tag mapping")
 	}
 
-	changes = make(map[string][]byte)
-	changes["name"] = []byte("changed")
-	changes["body"] = []byte("changed")
-	err = ecrate.Update(changes)
+	err = ecrate.Set("name", []byte("changed"))
 	catch(t, err)
 
+	err = ecrate.Set("body", []byte("changed"))
+	catch(t, err)
+
+	err = ecrate.Update()
+	catch(t, err)
+
+	err = external.Link(icrate)
+	catch(t, err)
+
+	if external.Meta.ID != internal.ID {
+		t.Fatal("Failed to link internal to meta")
+	}
+
+	if len(external.Data) == 0 {
+		t.Fatal("Failed to link UUID to data")
+	}
+
+	err = external.Unlink()
+	catch(t, err)
+
+	if external.Meta != nil {
+		t.Fatal("Failed to unlink meta")
+	}
+
+	if len(external.Data) != 0 {
+		t.Fatal("Failed to unlink UUID")
+	}
+
 	err = ecrate.Delete()
+	catch(t, err)
+
+	err = icrate.Delete()
+	catch(t, err)
+}
+
+func TestRepos(t *testing.T) {
+	hold, err := New(":memory:")
+	catch(t, err)
+
+	if hold.Store == nil {
+		t.Fatal("Store is nil")
+	}
+
+	defer hold.Store.Close()
+
+	_, err = hold.NewRepo("internal")
 	catch(t, err)
 }

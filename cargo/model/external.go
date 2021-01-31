@@ -16,6 +16,7 @@ type External struct {
 	Data    []byte          `json:"data"`
 	Tags    []Entity        `json:"tags"`
 	Mapping map[int64]int64 `json:"-"`
+	Meta    *Internal       `json:"-"`
 }
 
 func NewExternal(store *sql.DB) (*External, error) {
@@ -55,6 +56,8 @@ func (self *External) Encode(w io.Writer) error {
 
 func (self *External) Set(key string, value []byte) error {
 	switch key {
+	case "flag":
+		self.Flag = value[0]
 	case "type":
 		val := string(value)
 		if len(val) > 64 {
@@ -69,11 +72,6 @@ func (self *External) Set(key string, value []byte) error {
 		self.Name = val
 	case "body":
 		self.Body = string(value)
-	case "data":
-		if len(value) != 32 {
-			return fmt.Errorf("Data is not 32 bytes: %x", value)
-		}
-		self.Data = value
 	default:
 		return fmt.Errorf("Invalid key: %s", key)
 	}
@@ -103,8 +101,8 @@ func (self *External) Save() error {
 	}
 
 	statement, err := self.Store.Prepare(`
-		INSERT INTO external (uuid, flag, type, name, body, data)
-		VALUES (?, ?, ?, ?, ?, ?);
+		INSERT INTO external (uuid, flag, type, name, body)
+		VALUES (?, ?, ?, ?, ?);
 	`)
 
 	if err != nil {
@@ -118,7 +116,6 @@ func (self *External) Save() error {
 		self.Type,
 		self.Name,
 		self.Body,
-		self.Data,
 	)
 
 	if err != nil {
@@ -134,41 +131,11 @@ func (self *External) Save() error {
 	return nil
 }
 
-func (self *External) Update(changes map[string][]byte) error {
-	for key, value := range changes {
-		switch key {
-		case "type":
-			val := string(value)
-			if len(val) > 64 {
-				return fmt.Errorf("Type is over 64 characters: %s", val)
-			}
-			self.Type = val
-		case "name":
-			val := string(value)
-			if len(val) > 64 {
-				return fmt.Errorf("Name is over 64 characters: %s", val)
-			}
-			self.Name = val
-		case "body":
-			val := string(value)
-			if len(val) == 0 {
-				return fmt.Errorf("Body is missing: %s", val)
-			}
-			self.Body = val
-		case "data":
-			if len(value) == 0 {
-				return fmt.Errorf("Data is missing: %x", value)
-			}
-			self.Data = value
-		default:
-			return fmt.Errorf("Invalid key: %s", key)
-		}
-	}
-
+func (self *External) Update() error {
 	self.Updated = Now()
 	statement, err := self.Store.Prepare(`
 		UPDATE external
-		SET updated = ?, type = ?, name = ?, body = ?, data = ?
+		SET updated = ?, flag = ?, type = ?, name = ?, body = ?
 		WHERE id = ?
 	`)
 
@@ -179,10 +146,10 @@ func (self *External) Update(changes map[string][]byte) error {
 	defer statement.Close()
 	_, err = statement.Exec(
 		self.Updated,
+		self.Flag,
 		self.Type,
 		self.Name,
 		self.Body,
-		self.Data,
 		self.ID,
 	)
 
@@ -312,6 +279,66 @@ func (self *External) Unmap(entity Entity) error {
 			tags = append(tags, tag)
 		}
 		self.Tags = tags
+	}
+
+	return nil
+}
+
+func (self *External) Link(entity Entity) error {
+	meta, ok := entity.(*Internal)
+	if !ok {
+		return fmt.Errorf("Cannot cast to Internal: %#v", entity)
+	}
+
+	self.Meta = meta
+	self.Data = self.Meta.UUID
+
+	self.Updated = Now()
+	statement, err := self.Store.Prepare(`
+		UPDATE external SET updated = ?, data = ? WHERE id = ?;
+	`)
+
+	if err != nil {
+		return err
+	}
+
+	defer statement.Close()
+	_, err = statement.Exec(
+		self.Updated,
+		self.Meta.ID,
+		self.ID,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (self *External) Unlink() error {
+	var meta *Internal = nil
+
+	self.Meta = meta
+	self.Data = []byte{}
+
+	self.Updated = Now()
+	statement, err := self.Store.Prepare(`
+		UPDATE external SET updated = ?, data = NULL WHERE id = ?;
+	`)
+
+	if err != nil {
+		return err
+	}
+
+	defer statement.Close()
+	_, err = statement.Exec(
+		self.Updated,
+		self.ID,
+	)
+
+	if err != nil {
+		return err
 	}
 
 	return nil

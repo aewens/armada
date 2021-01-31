@@ -2,7 +2,6 @@ package model
 
 import (
 	"io"
-	"time"
 )
 
 type Displayer interface {
@@ -17,21 +16,6 @@ type Setter interface {
 	Set(string, []byte) error
 }
 
-type Entity interface {
-	Displayer
-	Encoder
-	Writer
-	Mapper
-}
-
-type Crate interface{
-	Entity
-	Setter
-	Updater
-}
-
-type CrateStream chan Crate
-
 type Mapper interface {
 	ExportMetadata() (int64, string)
 	Map(Entity) error
@@ -43,7 +27,7 @@ type Saver interface {
 }
 
 type Updater interface {
-	Update(map[string][]byte) error
+	Update() error
 }
 
 type Deleter interface {
@@ -52,15 +36,14 @@ type Deleter interface {
 
 type Writer interface {
 	Saver
+	Updater
 	Deleter
 }
 
-type Finder interface {
-	All() CrateStream
-	Lookup(...int) CrateStream
-	Contains(string, []byte) CrateStream
-	Equals(string, []byte) CrateStream
-	Before(time.Time) CrateStream
-	After(time.Time) CrateStream
-	Between(time.Time, time.Time) CrateStream
+type Entity interface {
+	Displayer
+	Encoder
+	Setter
+	Writer
+	Mapper
 }

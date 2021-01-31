@@ -5,6 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/aewens/armada/cargo/model"
+	"github.com/aewens/armada/cargo/repo"
 )
 
 type Hold struct {
@@ -26,8 +27,8 @@ func New(conn string) (*Hold, error) {
 	return hold, nil
 }
 
-func (self *Hold) NewCrate(crateType string) (model.Crate, error) {
-	var crate model.Crate = nil
+func (self *Hold) NewCrate(crateType string) (model.Entity, error) {
+	var crate model.Entity = nil
 
 	switch crateType {
 	case "internal":
@@ -38,6 +39,21 @@ func (self *Hold) NewCrate(crateType string) (model.Crate, error) {
 	return crate, fmt.Errorf("Invalid crate type: %s", crateType)
 }
 
-func (self *Hold) NewTag(label string) (*model.Tag, error) {
-	return model.NewTag(self.Store, label)
+func (self *Hold) NewTag() (*model.Tag, error) {
+	return model.NewTag(self.Store)
+}
+
+func (self *Hold) NewRepo(repoType string) (repo.Entity, error) {
+	var repository repo.Entity = nil
+
+	switch repoType {
+	case "internal":
+		return repo.NewInternal(self.Store), nil
+	case "external":
+		return repo.NewExternal(self.Store), nil
+	//case "tag":
+	//	return repo.NewTag(self.Store), nil
+	}
+
+	return repository, fmt.Errorf("Invalid repo type: %s", repoType)
 }

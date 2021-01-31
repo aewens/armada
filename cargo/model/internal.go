@@ -53,6 +53,8 @@ func (self *Internal) Encode(w io.Writer) error {
 
 func (self *Internal) Set(key string, value []byte) error {
 	switch key {
+	case "flag":
+		self.Flag = value[0]
 	case "type":
 		val := string(value)
 		if len(val) > 64 {
@@ -122,35 +124,11 @@ func (self *Internal) Save() error {
 	return nil
 }
 
-func (self *Internal) Update(changes map[string][]byte) error {
-	for key, value := range changes {
-		switch key {
-		case "type":
-			val := string(value)
-			if len(val) > 64 {
-				return fmt.Errorf("Type is over 64 characters: %s", val)
-			}
-			self.Type = val
-		case "origin":
-			val := string(value)
-			if len(val) > 64 {
-				return fmt.Errorf("Origin is over 64 characters: %s", val)
-			}
-			self.Origin = val
-		case "data":
-			if len(value) == 0 {
-				return fmt.Errorf("Data is missing: %x", value)
-			}
-			self.Data = value
-		default:
-			return fmt.Errorf("Invalid key: %s", key)
-		}
-	}
-
+func (self *Internal) Update() error {
 	self.Updated = Now()
 	statement, err := self.Store.Prepare(`
 		UPDATE internal
-		SET updated = ?, type = ?, origin = ?, data = ?
+		SET updated = ?, flag = ?, type = ?, origin = ?, data = ?
 		WHERE id = ?
 	`)
 
@@ -161,6 +139,7 @@ func (self *Internal) Update(changes map[string][]byte) error {
 	defer statement.Close()
 	_, err = statement.Exec(
 		self.Updated,
+		self.Flag,
 		self.Type,
 		self.Origin,
 		self.Data,

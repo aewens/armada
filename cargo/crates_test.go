@@ -233,6 +233,11 @@ func TestRepos(t *testing.T) {
 		t.Fatal("Could not lookup entity")
 	}
 
+	count = StreamSize(irepo.Contains("origin", "1"))
+	if count != 1 {
+		t.Fatal("Could not lookup entity")
+	}
+
 	erepo, err := hold.NewRepo("external")
 	catch(t, err)
 
@@ -267,6 +272,11 @@ func TestRepos(t *testing.T) {
 		t.Fatal("Could not lookup entity")
 	}
 
+	count = StreamSize(erepo.Contains("name", "1"))
+	if count != 1 {
+		t.Fatal("Could not lookup entity")
+	}
+
 	trepo, err := hold.NewRepo("tag")
 	catch(t, err)
 
@@ -293,6 +303,11 @@ func TestRepos(t *testing.T) {
 	}
 
 	count = StreamSize(trepo.Lookup(2))
+	if count != 1 {
+		t.Fatal("Could not lookup entity")
+	}
+
+	count = StreamSize(trepo.Contains("label", "1"))
 	if count != 1 {
 		t.Fatal("Could not lookup entity")
 	}

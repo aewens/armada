@@ -186,3 +186,14 @@ func (self *External) Get(id int64) (model.Entity, error) {
 		link,
 	)
 }
+
+func (self *External) Load(stream Stream) {
+	for entity := range stream {
+		external, ok := entity.(*model.External)
+		if !ok {
+			continue
+		}
+
+		self.Crates[external.ID] = external
+	}
+}

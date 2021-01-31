@@ -167,3 +167,14 @@ func (self *Internal) Get(id int64) (model.Entity, error) {
 		data,
 	)
 }
+
+func (self *Internal) Load(stream Stream) {
+	for entity := range stream {
+		internal, ok := entity.(*model.Internal)
+		if !ok {
+			continue
+		}
+
+		self.Crates[internal.ID] = internal
+	}
+}

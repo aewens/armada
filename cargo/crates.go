@@ -51,8 +51,8 @@ func (self *Hold) NewRepo(repoType string) (repo.Entity, error) {
 		return repo.NewInternal(self.Store), nil
 	case "external":
 		return repo.NewExternal(self.Store), nil
-	//case "tag":
-	//	return repo.NewTag(self.Store), nil
+	case "tag":
+		return repo.NewTag(self.Store), nil
 	}
 
 	return repository, fmt.Errorf("Invalid repo type: %s", repoType)

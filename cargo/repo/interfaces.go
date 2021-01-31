@@ -22,4 +22,5 @@ type Reader interface {
 type Entity interface {
 	Reader
 	Create() (model.Entity, error)
+	Load(Stream)
 }

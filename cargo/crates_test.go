@@ -186,6 +186,21 @@ func TestRepos(t *testing.T) {
 
 	defer hold.Store.Close()
 
-	_, err = hold.NewRepo("internal")
+	irepo, err := hold.NewRepo("internal")
 	catch(t, err)
+
+	istream := irepo.All()
+	irepo.Load(istream)
+
+	erepo, err := hold.NewRepo("external")
+	catch(t, err)
+
+	estream := erepo.All()
+	erepo.Load(estream)
+
+	trepo, err := hold.NewRepo("tag")
+	catch(t, err)
+
+	tstream := trepo.All()
+	trepo.Load(tstream)
 }

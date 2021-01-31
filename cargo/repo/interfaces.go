@@ -13,7 +13,7 @@ type Reader interface {
 	Get(int64) (model.Entity, error)
 	Lookup(...int64) Stream
 	Contains(string, string) Stream
-	//Equals(string, []byte) Stream
+	Equals(string, string) Stream
 	//Before(time.Time) Stream
 	//After(time.Time) Stream
 	//Between(time.Time, time.Time) Stream

@@ -290,3 +290,78 @@ func (self *External) Contains(field string, search string) Stream {
 
 	return stream
 }
+
+func (self *External) Equals(field string, search string) Stream {
+	stream := make(Stream)
+
+	go func() {
+		statement, err := self.Store.Prepare(fmt.Sprintf(`
+			SELECT id, uuid, added, updated, flag, type, name, body, data
+			FROM external WHERE %s = ?;
+		`, field))
+
+		if err != nil {
+			return
+		}
+
+		defer statement.Close()
+		rows, err := statement.Query(search)
+
+		if err != nil {
+			return
+		}
+
+		defer rows.Close()
+		for rows.Next() {
+			var (
+				id      int64
+				uuid    []byte
+				added   time.Time
+				updated time.Time
+				flag    uint8
+				etype   string
+				name    string
+				body    string
+				link    sql.NullInt64
+			)
+
+			err = rows.Scan(
+				&id,
+				&uuid,
+				&added,
+				&updated,
+				&flag,
+				&etype,
+				&name,
+				&body,
+				&link,
+			)
+
+			if err != nil {
+				continue
+			}
+
+			entity, err := self.Import(
+				id,
+				uuid,
+				added,
+				updated,
+				flag,
+				etype,
+				name,
+				body,
+				link,
+			)
+
+			if err != nil {
+				continue
+			}
+
+			stream <- entity
+		}
+
+		close(stream)
+	}()
+
+	return stream
+}

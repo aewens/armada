@@ -7,12 +7,8 @@ import (
 	"github.com/aewens/armada/cargo/model"
 )
 
-type Manifest []*model.Crate
-
 type Hold struct {
-	Store   *sql.DB
-	Crates  map[string]Manifest
-	Mapping map[string]Manifest
+	Store  *sql.DB
 }
 
 func New(conn string) (*Hold, error) {
@@ -24,9 +20,7 @@ func New(conn string) (*Hold, error) {
 	}
 
 	hold = &Hold{
-		Store:   store,
-		Crates:  make(map[string]Manifest),
-		Mapping: make(map[string]Manifest),
+		Store:  store,
 	}
 
 	return hold, nil
@@ -41,6 +35,9 @@ func (self *Hold) NewCrate(crateType string) (model.Crate, error) {
 	case "external":
 		return model.NewExternal(self.Store)
 	}
-
 	return crate, fmt.Errorf("Invalid crate type: %s", crateType)
+}
+
+func (self *Hold) NewTag(label string) (*model.Tag, error) {
+	return model.NewTag(self.Store, label)
 }

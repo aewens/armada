@@ -10,23 +10,25 @@ import (
 
 type Internal struct {
 	Common
-	Type   string `json:"type"`
-	Origin string `json:"origin"`
-	Data   []byte `json:"data"`
-	Tags   []*Tag `json:"tags"`
+	Type    string          `json:"type"`
+	Origin  string          `json:"origin"`
+	Data    []byte          `json:"data"`
+	Tags    []Entity        `json:"tags"`
+	Mapping map[int64]int64 `json:"-"`
 }
 
 func NewInternal(store *sql.DB) (*Internal, error) {
 	var self *Internal
 
-	common, err := NewCommon(store)
+	common, err := NewCommon(store, "internal")
 	if err != nil {
 		return self, err
 	}
 
 	self = &Internal{
-		Common: common,
-		Tags:   []*Tag{},
+		Common:  common,
+		Tags:    []Entity{},
+		Mapping: make(map[int64]int64),
 	}
 
 	return self, nil
@@ -145,8 +147,10 @@ func (self *Internal) Update(changes map[string][]byte) error {
 		}
 	}
 
+	self.Updated = Now()
 	statement, err := self.Store.Prepare(`
-		UPDATE internal SET type = ?, origin = ?, data = ?
+		UPDATE internal
+		SET updated = ?, type = ?, origin = ?, data = ?
 		WHERE id = ?
 	`)
 
@@ -156,6 +160,7 @@ func (self *Internal) Update(changes map[string][]byte) error {
 
 	defer statement.Close()
 	_, err = statement.Exec(
+		self.Updated,
 		self.Type,
 		self.Origin,
 		self.Data,
@@ -185,6 +190,47 @@ func (self *Internal) Delete() error {
 
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (self *Internal) ExportMetadata() (int64, string) {
+	return self.ID, self.Mapper
+}
+
+func (self *Internal) Map(entity Entity) error {
+	id, mapper := entity.ExportMetadata()
+	if self.Mapper == mapper {
+		return fmt.Errorf("Cannot create mapping with: %s", mapper)
+	}
+
+	statement, err := self.Store.Prepare(fmt.Sprintf(`
+		INSERT INTO mapping (internal_id, %s_id) VALUES (?, ?);
+	`, mapper))
+
+	if err != nil {
+		return err
+	}
+
+	defer statement.Close()
+	result, err := statement.Exec(
+		self.ID,
+		id,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	mappingID, err := result.LastInsertId()
+	if err != nil {
+		return err
+	}
+
+	self.Mapping[id] = mappingID
+	if mapper == "tag" {
+		self.Tags = append(self.Tags, entity)
 	}
 
 	return nil

@@ -10,6 +10,7 @@ import (
 
 type Common struct {
 	Store   *sql.DB   `json:"-"`
+	Mapper  string    `json:"-"`
 	ID      int64     `json:"-"`
 	UUID    []byte    `json:"uuid"`
 	Added   time.Time `json:"added"`
@@ -41,7 +42,7 @@ func Now() time.Time {
 	return time.Now().UTC()
 }
 
-func NewCommon(store *sql.DB) (Common, error) {
+func NewCommon(store *sql.DB, mapper string) (Common, error) {
 	var self Common
 
 	uuid, err := NewUUID()
@@ -50,9 +51,10 @@ func NewCommon(store *sql.DB) (Common, error) {
 	}
 
 	self = Common{
-		Store: store,
-		UUID:  uuid,
-		Flag:  0,
+		Store:  store,
+		Mapper: mapper,
+		UUID:   uuid,
+		Flag:   0,
 	}
 
 	return self, nil

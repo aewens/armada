@@ -96,6 +96,9 @@ var Tables string = `
 		internal_id INTEGER, -- allowed to be null
 		external_id INTEGER, -- allowed to be null
 		tag_id INTEGER, -- allowed to be null
+		UNIQUE (internal_id, tag_id) ON CONFLICT IGNORE,
+		UNIQUE (external_id, tag_id) ON CONFLICT IGNORE, -- prevent duplicates
+		UNIQUE (internal_id, external_id) ON CONFLICT IGNORE,
 		FOREIGN KEY (internal_id) REFERENCES internal(id) ON DELETE CASCADE,
 		FOREIGN KEY (external_id) REFERENCES external(id) ON DELETE CASCADE,
 		FOREIGN KEY (tag_id) REFERENCES tag(id) ON DELETE CASCADE,

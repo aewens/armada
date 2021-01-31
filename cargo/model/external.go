@@ -10,26 +10,28 @@ import (
 
 type External struct {
 	Common
-	Type   string `json:"type"`
-	Name   string `json:"name"`
-	Body   string `json:"body"`
-	Data   []byte `json:"data"`
-	Tags   []*Tag `json:"tags"`
+	Type    string          `json:"type"`
+	Name    string          `json:"name"`
+	Body    string          `json:"body"`
+	Data    []byte          `json:"data"`
+	Tags    []Entity        `json:"tags"`
+	Mapping map[int64]int64 `json:"-"`
 }
 
 func NewExternal(store *sql.DB) (*External, error) {
 	var self *External
 	var data []byte
 
-	common, err := NewCommon(store)
+	common, err := NewCommon(store, "external")
 	if err != nil {
 		return self, err
 	}
 
 	self = &External{
-		Common: common,
-		Data:   data,
-		Tags:   []*Tag{},
+		Common:  common,
+		Data:    data,
+		Tags:    []Entity{},
+		Mapping: make(map[int64]int64),
 	}
 
 	return self, nil
@@ -163,8 +165,10 @@ func (self *External) Update(changes map[string][]byte) error {
 		}
 	}
 
+	self.Updated = Now()
 	statement, err := self.Store.Prepare(`
-		UPDATE external SET type = ?, name = ?, body = ?, data = ?
+		UPDATE external
+		SET updated = ?, type = ?, name = ?, body = ?, data = ?
 		WHERE id = ?
 	`)
 
@@ -174,6 +178,7 @@ func (self *External) Update(changes map[string][]byte) error {
 
 	defer statement.Close()
 	_, err = statement.Exec(
+		self.Updated,
 		self.Type,
 		self.Name,
 		self.Body,
@@ -204,6 +209,47 @@ func (self *External) Delete() error {
 
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (self *External) ExportMetadata() (int64, string) {
+	return self.ID, self.Mapper
+}
+
+func (self *External) Map(entity Entity) error {
+	id, mapper := entity.ExportMetadata()
+	if self.Mapper == mapper {
+		return fmt.Errorf("Cannot create mapping with: %s", mapper)
+	}
+
+	statement, err := self.Store.Prepare(fmt.Sprintf(`
+		INSERT INTO mapping (external_id, %s_id) VALUES (?, ?);
+	`, mapper))
+
+	if err != nil {
+		return err
+	}
+
+	defer statement.Close()
+	result, err := statement.Exec(
+		self.ID,
+		id,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	mappingID, err := result.LastInsertId()
+	if err != nil {
+		return err
+	}
+
+	self.Mapping[id] = mappingID
+	if mapper == "tag" {
+		self.Tags = append(self.Tags, entity)
 	}
 
 	return nil

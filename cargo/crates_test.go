@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/aewens/armada/cargo/model"
 )
 
 func catch(t *testing.T, err error) {
@@ -21,6 +22,21 @@ func TestHold(t *testing.T) {
 	}
 
 	defer hold.Store.Close()
+
+	_, err = hold.NewCrate("tag")
+	if err == nil {
+		t.Fatal("New tag crate is not invalid")
+	}
+
+	tag, err := hold.NewTag("test")
+	catch(t, err)
+	if tag == nil {
+		t.Fatal("New tag is nil")
+	}
+
+	err = tag.Save()
+	catch(t, err)
+
 	icrate, err := hold.NewCrate("internal")
 	catch(t, err)
 	if icrate == nil {
@@ -36,6 +52,22 @@ func TestHold(t *testing.T) {
 
 	err = icrate.Save()
 	catch(t, err)
+
+	err = icrate.Map(tag)
+	catch(t, err)
+
+	internal, ok := icrate.(*model.Internal)
+	if !ok {
+		t.Fatal("Crate is not Internal")
+	}
+
+	if len(internal.Tags) != 1 {
+		t.Fatal("Missing tag entry")
+	}
+
+	if len(internal.Mapping) != 1 {
+		t.Fatal("Missing tag mapping")
+	}
 
 	changes := make(map[string][]byte)
 	changes["data"] = []byte{1}
@@ -61,6 +93,22 @@ func TestHold(t *testing.T) {
 	err = ecrate.Save()
 	catch(t, err)
 
+	err = ecrate.Map(tag)
+	catch(t, err)
+
+	external, ok := ecrate.(*model.External)
+	if !ok {
+		t.Fatal("Crate is not External")
+	}
+
+	if len(external.Tags) != 1 {
+		t.Fatal("Missing tag entry")
+	}
+
+	if len(external.Mapping) != 1 {
+		t.Fatal("Missing tag mapping")
+	}
+
 	changes = make(map[string][]byte)
 	changes["name"] = []byte("changed")
 	changes["body"] = []byte("changed")
@@ -69,9 +117,4 @@ func TestHold(t *testing.T) {
 
 	err = ecrate.Delete()
 	catch(t, err)
-
-	_, err = hold.NewCrate("tag")
-	if err == nil {
-		t.Fatal("New tag crate is not invalid")
-	}
 }

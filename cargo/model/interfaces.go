@@ -14,26 +14,36 @@ type Encoder interface {
 }
 
 type Setter interface {
-	Set(key string, value []byte) error
+	Set(string, []byte) error
+}
+
+type Entity interface {
+	Displayer
+	Encoder
+	Writer
+	Mapper
 }
 
 type Crate interface{
-	Displayer
-	Encoder
+	Entity
 	Setter
-	Saver
 	Updater
-	Deleter
 }
 
 type CrateStream chan Crate
+
+type Mapper interface {
+	ExportMetadata() (int64, string)
+	Map(Entity) error
+	//Unmap(Entity) error
+}
 
 type Saver interface {
 	Save() error
 }
 
 type Updater interface {
-	Update(changes map[string][]byte) error
+	Update(map[string][]byte) error
 }
 
 type Deleter interface {
@@ -42,7 +52,6 @@ type Deleter interface {
 
 type Writer interface {
 	Saver
-	Updater
 	Deleter
 }
 

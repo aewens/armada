@@ -3,7 +3,7 @@ package repo
 import (
 	"time"
 
-	"github.com/aewens/armada/cargo/model"
+	"github.com/aewens/nautical/cargo/model"
 )
 
 type Stream chan model.Entity

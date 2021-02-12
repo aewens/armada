@@ -5,7 +5,7 @@ import (
 	"time"
 	"database/sql"
 
-	"github.com/aewens/armada/cargo/model"
+	"github.com/aewens/nautical/cargo/model"
 )
 
 type Internal struct {

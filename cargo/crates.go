@@ -5,8 +5,8 @@ import (
 	"time"
 	"database/sql"
 
-	"github.com/aewens/armada/cargo/model"
-	"github.com/aewens/armada/cargo/repo"
+	"github.com/aewens/nautical/cargo/model"
+	"github.com/aewens/nautical/cargo/repo"
 )
 
 type Hold struct {

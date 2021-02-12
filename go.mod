@@ -1,4 +1,4 @@
-module github.com/aewens/armada
+module github.com/aewens/nautical
 
 go 1.14
 

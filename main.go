@@ -5,7 +5,7 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 
-	"github.com/aewens/armada/cargo"
+	"github.com/aewens/nautical/cargo"
 )
 
 func main() {

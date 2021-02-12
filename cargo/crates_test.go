@@ -6,8 +6,8 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/aewens/armada/cargo/model"
-	"github.com/aewens/armada/cargo/repo"
+	"github.com/aewens/nautical/cargo/model"
+	"github.com/aewens/nautical/cargo/repo"
 )
 
 func catch(t *testing.T, err error) {
